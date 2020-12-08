@@ -34,9 +34,75 @@ Le tableau `devoir_sample` contient les données de cet échantillon. Les variab
 - `poids_sond` : poids de sondage (inverse des probabilités d'inclusion);
 - `statut` : présence de la maladie (`0` = non, `1` = oui).
 
+
+# Library
+library(readr)
+library(tidyverse)
+library(survey)
+library(tableone)
+
+# Base
+
+```{r}
+base <- read_csv("D:/Benoît/Desktop/Cours master 2/Modelisation Git hub/devoir/devoir_sample.csv", 
+     col_types = cols(sexe_m = col_character(), csp = col_character(),
+         statut = col_character()))
+
+summary(base)
+```
+Nous avons dans notre base de données 69 données manquantes pour le poids du sondage. Nous excluerons de notre analyse ces observations
+
+
 ### Question 1
 
 En faisant l'hypothèse que les poids de sondage décrivent directement le nombre de sujets représentés dans la population cible (on verra par la suite que cette hypothèse est discutable), estimer pour chacune des cohortes la prévalence de la maladie dans sa population-cible.
+
+
+```{r}
+
+A <- base %>% 
+  filter (cohorte == "A") %>% 
+  filter (poids_sond != "is.na")
+AD <- svydesign(id = ~id, data = A, weights = ~ poids_sond)
+svymean(~statut,AD)
+
+
+B <- base %>% 
+  filter (cohorte == "B") %>% 
+  filter (poids_sond != "is.na") 
+BD <- svydesign(id = ~id, data = B, weights = ~ poids_sond)
+svymean(~statut,BD)
+
+C <- base %>% 
+  filter (cohorte == "C") %>% 
+  filter (poids_sond != "is.na")
+CD <- svydesign(id = ~id, data = C, weights = ~ poids_sond)
+svymean(~statut,CD)
+
+D <- base %>% 
+  filter (cohorte == "D") %>% 
+  filter (poids_sond != "is.na")
+DD <- svydesign(id = ~id, data = D, weights = ~ poids_sond)
+svymean(~statut,DD)
+
+E <- base %>% 
+  filter (cohorte == "E") %>% 
+  filter (poids_sond != "is.na")
+ED <- svydesign(id = ~id, data = E, weights = ~ poids_sond)
+svymean(~statut,ED)
+
+
+Tot <- base %>% 
+  filter(poids_sond != "is.na")
+TD <- svydesign(id = ~id, data = Tot, weights = ~poids_sond, strata = ~ cohorte)
+svyCreateCatTable(vars = "statut", strata = "cohorte", data = TD, test = FALSE)
+
+
+```
+
+Nous avons donc, pour chacune des cohortes, estimé la prévalence de la maladie dans sa population-cible en prenant en compte les poids de sondage.
+
+Le prévalence dans la cohorte A est de 8.0%, dans la cohorte B de 10.6%, dans la cohorte C de 2.0%, dans la cohorte D de 0.8% et dans la cohorte E de 8.4%
 
 
 ### Question 2
@@ -45,5 +111,13 @@ On souhaite à présent utiliser l'information issue de toutes les cohortes pour
 
 Avec la même hypothèse que pour la question 1, pourquoi ne peut-on pas simplement réaliser cette estimation sur l'ensemble de l'échantillon en utilisant directement les poids de sondage proposés ?
 
+Dans notre situation une seule base de donnée recouvre entièrement la population d'intéret sur lequelle nous souhaiterions estimer notre prévalence (base B). Les autres bases de données sont incomplètes et ne recouvrent que partiellement l'âge de notre population d'intéret. Nénamoins elles se recoupent entre elles.
+
+Or Un estimateur qui combine les observations provenant de plusieurs échantillons avec les poids originaux est biaisé pour le total de population. 
+
+En effet, si on prenait le poids de chaque individu dans son groupe alors nous sur-estimerions le poids total à cause des patients appartenants à l'interesection des groupes.
+
+
 Quelle(s) information(s) serait nécessaire pour réaliser cette estimation ?
 
+Il nous manque la répartition des âges et du sexe dans la population cible pour aisni stratifier notre population. Nous pourrions alors calculer les poids ajustés pour chacun des individus en fonction de leur répartition dans la population cible.
